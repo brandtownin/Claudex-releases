@@ -1,0 +1,70 @@
+name: Publish v3.4-r2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-v3.4-r2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail if release already exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if gh release view v3.4-r2 --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo 'v3.4-r2 already exists; refusing to overwrite immutable release'
+            exit 1
+          fi
+
+      - name: Download exact verified source artifacts
+        env:
+          X86_ZIP_URL: 'https://sdmntprindiasocentral.oaiusercontent.com/files/00000000-8fe0-8211-89db-33b4927e58c5/raw?se=2026-08-18T08%3A52%3A50Z&sp=r&sv=2026-02-06&sr=b&scid=c2059bcb-ff2a-54ce-8bc3-f077d46abdab&skoid=37f774a3-b6f2-4e56-9fdd-339e5d6e97f8&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-08-18T03%3A08%3A17Z&ske=2026-08-19T03%3A08%3A17Z&sks=b&skv=2026-02-06&sig=ljURcRVTagd6Gh4CVKYp4YSKsBtqxrB5tFSeEWyNjPA%3D'
+          ARM_ZIP_URL: 'https://sdmntprindiasocentral.oaiusercontent.com/files/00000000-8218-8211-b14b-c79e10b75529/raw?se=2026-08-18T08%3A53%3A25Z&sp=r&sv=2026-02-06&sr=b&scid=9490e7db-28de-5dbc-8433-45e8677e2628&skoid=37f774a3-b6f2-4e56-9fdd-339e5d6e97f8&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-08-18T03%3A21%3A21Z&ske=2026-08-19T03%3A21%3A21Z&sks=b&skv=2026-02-06&sig=7azuD/2NKPpZNHlCm%2BAwINuJC3NuhpHAMqmX6AIngWo%3D'
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 --retry-all-errors "$X86_ZIP_URL" -o x86.zip
+          curl -fL --retry 3 --retry-all-errors "$ARM_ZIP_URL" -o arm.zip
+          unzip -q x86.zip -d x86
+          unzip -q arm.zip -d arm
+          mv x86/claudex-v3.4-r2-linux-x86_64.tar.gz .
+          mv arm/claudex-v3.4-r2-linux-aarch64.tar.gz .
+
+      - name: Verify exact r2 bytes
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' \
+            '93c3f38115ee5c255a0d0ba1a20c70b15967634c968d1e00a2dfb6940fa457ba' \
+            'claudex-v3.4-r2-linux-x86_64.tar.gz' \
+            'ed04e392ac215f9029c3d2180358741fd3a5e6c646de6bd559de8b637f9bcb36' \
+            'claudex-v3.4-r2-linux-aarch64.tar.gz' > SHA256SUMS
+          sha256sum -c SHA256SUMS
+
+      - name: Publish immutable candidate release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create v3.4-r2 \
+            --repo "$GITHUB_REPOSITORY" \
+            --title 'Claudex v3.4-r2' \
+            --notes 'Binary-only Claudex v3.4-r2 release. Assets are the exact byte-verified artifacts from the private Claudex release pipeline; SHA256SUMS is authoritative.' \
+            claudex-v3.4-r2-linux-x86_64.tar.gz \
+            claudex-v3.4-r2-linux-aarch64.tar.gz \
+            SHA256SUMS
+
+      - name: Verify anonymous public downloads
+        run: |
+          set -euo pipefail
+          base="https://github.com/${GITHUB_REPOSITORY}/releases/download/v3.4-r2"
+          mkdir public-check
+          curl -fL --retry 3 --retry-all-errors "$base/claudex-v3.4-r2-linux-x86_64.tar.gz" -o public-check/claudex-v3.4-r2-linux-x86_64.tar.gz
+          curl -fL --retry 3 --retry-all-errors "$base/claudex-v3.4-r2-linux-aarch64.tar.gz" -o public-check/claudex-v3.4-r2-linux-aarch64.tar.gz
+          cp SHA256SUMS public-check/SHA256SUMS
+          (cd public-check && sha256sum -c SHA256SUMS)
