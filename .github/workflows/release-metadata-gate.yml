@@ -1,0 +1,38 @@
+name: Release metadata gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'channels/**'
+      - 'scripts/validate_channel_metadata.py'
+      - 'tests/test_release_metadata_gate.py'
+      - '.github/workflows/release-metadata-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'channels/**'
+      - 'scripts/validate_channel_metadata.py'
+      - 'tests/test_release_metadata_gate.py'
+      - '.github/workflows/release-metadata-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-release-metadata:
+    name: Validate release metadata
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout release metadata
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+
+      - name: Run validator tests
+        run: python3 -m unittest tests.test_release_metadata_gate
+
+      - name: Validate candidate channel
+        run: python3 scripts/validate_channel_metadata.py --pointer-file channels/candidate.json
+
+      - name: Validate stable channel
+        run: python3 scripts/validate_channel_metadata.py --pointer-file channels/stable.json
