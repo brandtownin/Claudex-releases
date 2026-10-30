@@ -34,5 +34,11 @@ jobs:
       - name: Validate candidate channel
         run: python3 scripts/validate_channel_metadata.py --pointer-file channels/candidate.json
 
+      - name: Validate beta channel when present
+        run: |
+          if test -f channels/beta.json; then
+            python3 scripts/validate_channel_metadata.py --pointer-file channels/beta.json
+          fi
+
       - name: Validate stable channel
         run: python3 scripts/validate_channel_metadata.py --pointer-file channels/stable.json
