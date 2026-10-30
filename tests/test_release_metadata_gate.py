@@ -74,6 +74,18 @@ class ReleaseMetadataGateTests(unittest.TestCase):
         result = run_validator(valid_pointer(), valid_manifest())
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_accepts_beta_pointer_to_same_manifest(self):
+        pointer = valid_pointer()
+        pointer['channel'] = 'beta'
+        result = run_validator(pointer, valid_manifest())
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_rejects_unknown_pointer_channel(self):
+        pointer = valid_pointer()
+        pointer['channel'] = 'untrusted'
+        result = run_validator(pointer, valid_manifest())
+        self.assertNotEqual(result.returncode, 0)
+
     def test_release_repo_workflow_enforces_validator(self):
         workflow = ROOT / '.github' / 'workflows' / 'release-metadata-gate.yml'
         self.assertTrue(workflow.is_file(), 'release metadata gate workflow must exist')
@@ -82,6 +94,7 @@ class ReleaseMetadataGateTests(unittest.TestCase):
         self.assertIn('branches: [main]', text)
         self.assertIn('scripts/validate_channel_metadata.py --pointer-file channels/candidate.json', text)
         self.assertIn('scripts/validate_channel_metadata.py --pointer-file channels/stable.json', text)
+        self.assertIn('scripts/validate_channel_metadata.py --pointer-file channels/beta.json', text)
 
 
 if __name__ == '__main__':
