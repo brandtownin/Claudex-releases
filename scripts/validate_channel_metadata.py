@@ -39,8 +39,8 @@ def is_https(value: object) -> bool:
 def validate_pointer(pointer: dict) -> None:
     if pointer.get('schema') != 1:
         fail('pointer schema must be 1')
-    if pointer.get('channel') not in ('candidate', 'stable'):
-        fail('pointer channel must be candidate or stable')
+    if pointer.get('channel') not in ('candidate', 'beta', 'stable'):
+        fail('pointer channel must be candidate, beta or stable')
     if not isinstance(pointer.get('release'), str) or not RELEASE_RE.fullmatch(pointer['release']):
         fail('pointer release is invalid')
     if not is_https(pointer.get('manifest_url')):
