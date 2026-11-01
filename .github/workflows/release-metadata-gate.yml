@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'channels/**'
+      - 'bootstrap.sh'
+      - 'bootstrap.sha256'
+      - 'tests/test_bootstrap_distribution.py'
       - 'scripts/validate_channel_metadata.py'
       - 'tests/test_release_metadata_gate.py'
       - '.github/workflows/release-metadata-gate.yml'
@@ -12,6 +15,9 @@ on:
     branches: [main]
     paths:
       - 'channels/**'
+      - 'bootstrap.sh'
+      - 'bootstrap.sha256'
+      - 'tests/test_bootstrap_distribution.py'
       - 'scripts/validate_channel_metadata.py'
       - 'tests/test_release_metadata_gate.py'
       - '.github/workflows/release-metadata-gate.yml'
@@ -30,6 +36,12 @@ jobs:
 
       - name: Run validator tests
         run: python3 -m unittest tests.test_release_metadata_gate
+
+      - name: Validate public bootstrap
+        run: |
+          python3 -m unittest tests.test_bootstrap_distribution
+          sha256sum --check bootstrap.sha256
+          bash -n bootstrap.sh
 
       - name: Validate candidate channel
         run: python3 scripts/validate_channel_metadata.py --pointer-file channels/candidate.json
